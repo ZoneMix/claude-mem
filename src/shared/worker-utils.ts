@@ -1,11 +1,29 @@
-import path from "path";
-import { readFileSync } from "fs";
+import path, { join, dirname } from "path";
+import { readFileSync, existsSync } from "fs";
 import { logger } from "../utils/logger.js";
 import { HOOK_TIMEOUTS, getTimeout } from "./hook-constants.js";
 import { SettingsDefaultsManager } from "./SettingsDefaultsManager.js";
-import { MARKETPLACE_ROOT } from "./paths.js";
+import { MARKETPLACE_ROOT, USER_SETTINGS_PATH } from "./paths.js";
 
-// Named constants for health checks
+/**
+ * Fetch with authentication header (X-API-Key)
+ * Loads API key from settings.json automatically.
+ */
+export async function fetchWithAuth(url: string, init: RequestInit = {}): Promise<Response> {
+  const settings = SettingsDefaultsManager.loadFromFile(USER_SETTINGS_PATH);
+  const apiKey = settings.CLAUDE_MEM_API_KEY;
+
+  const headers = new Headers(init.headers || {});
+  if (apiKey) {
+    headers.set('X-API-Key', apiKey);
+  }
+
+  return fetch(url, {
+    ...init,
+    headers
+  });
+}
+
 // Allow env var override for users on slow systems (e.g., CLAUDE_MEM_HEALTH_TIMEOUT_MS=10000)
 const HEALTH_CHECK_TIMEOUT_MS = (() => {
   const envVal = process.env.CLAUDE_MEM_HEALTH_TIMEOUT_MS;

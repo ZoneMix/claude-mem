@@ -52,6 +52,8 @@ export interface ServerOptions {
   getInitializationComplete: () => boolean;
   /** Whether MCP is ready (for health/readiness info) */
   getMcpReady: () => boolean;
+  /** Internal API key for authentication (C-2) */
+  apiKey?: string;
   /** Shutdown function for admin endpoints */
   onShutdown: () => Promise<void>;
   /** Restart function for admin endpoints */
@@ -150,7 +152,7 @@ export class Server {
    * Setup Express middleware
    */
   private setupMiddleware(): void {
-    const middlewares = createMiddleware(summarizeRequestBody);
+    const middlewares = createMiddleware(summarizeRequestBody, this.options.apiKey);
     middlewares.forEach(mw => this.app.use(mw));
   }
 

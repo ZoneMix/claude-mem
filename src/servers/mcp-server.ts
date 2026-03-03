@@ -28,10 +28,13 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { getWorkerPort, getWorkerHost } from '../shared/worker-utils.js';
+import { SettingsDefaultsManager } from '../shared/SettingsDefaultsManager.js';
+import { USER_SETTINGS_PATH } from '../shared/paths.js';
 import { searchCodebase, formatSearchResults } from '../services/smart-file-read/search.js';
 import { parseFile, formatFoldedView, unfoldSymbol } from '../services/smart-file-read/parser.js';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { validatePath } from '../utils/security.js';
 
 /**
  * Worker HTTP API configuration
@@ -39,6 +42,10 @@ import { resolve } from 'node:path';
 const WORKER_PORT = getWorkerPort();
 const WORKER_HOST = getWorkerHost();
 const WORKER_BASE_URL = `http://${WORKER_HOST}:${WORKER_PORT}`;
+
+// C-2: Load internal API key for Worker authentication
+const settings = SettingsDefaultsManager.loadFromFile(USER_SETTINGS_PATH);
+const WORKER_API_KEY = settings.CLAUDE_MEM_API_KEY;
 
 /**
  * Map tool names to Worker HTTP endpoints
@@ -68,7 +75,11 @@ async function callWorkerAPI(
     }
 
     const url = `${WORKER_BASE_URL}${endpoint}?${searchParams}`;
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        'X-API-Key': WORKER_API_KEY
+      }
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -107,7 +118,8 @@ async function callWorkerAPIPost(
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-API-Key': WORKER_API_KEY
       },
       body: JSON.stringify(body)
     });
@@ -264,7 +276,7 @@ NEVER fetch full details without filtering first. 10x token savings.`,
       required: ['query']
     },
     handler: async (args: any) => {
-      const rootDir = resolve(args.path || process.cwd());
+      const rootDir = validatePath(args.path || process.cwd(), process.cwd(), 'smart_search');
       const result = await searchCodebase(rootDir, args.query, {
         maxResults: args.max_results || 20,
         filePattern: args.file_pattern
@@ -293,7 +305,7 @@ NEVER fetch full details without filtering first. 10x token savings.`,
       required: ['file_path', 'symbol_name']
     },
     handler: async (args: any) => {
-      const filePath = resolve(args.file_path);
+      const filePath = validatePath(args.file_path, process.cwd(), 'smart_unfold');
       const content = await readFile(filePath, 'utf-8');
       const unfolded = unfoldSymbol(content, filePath, args.symbol_name);
       if (unfolded) {
@@ -334,7 +346,7 @@ NEVER fetch full details without filtering first. 10x token savings.`,
       required: ['file_path']
     },
     handler: async (args: any) => {
-      const filePath = resolve(args.file_path);
+      const filePath = validatePath(args.file_path, process.cwd(), 'smart_outline');
       const content = await readFile(filePath, 'utf-8');
       const parsed = parseFile(content, filePath);
       if (parsed.symbols.length > 0) {

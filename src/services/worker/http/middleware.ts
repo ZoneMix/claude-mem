@@ -14,15 +14,18 @@ import { logger } from '../../../utils/logger.js';
 /**
  * Create all middleware for the worker service
  * @param summarizeRequestBody - Function to summarize request bodies for logging
+ * @param apiKey - Optional API key for authentication (C-2)
  * @returns Array of middleware functions
  */
 export function createMiddleware(
-  summarizeRequestBody: (method: string, path: string, body: any) => string
+  summarizeRequestBody: (method: string, path: string, body: any) => string,
+  apiKey?: string
 ): RequestHandler[] {
   const middlewares: RequestHandler[] = [];
 
-  // JSON parsing with 50mb limit
-  middlewares.push(express.json({ limit: '50mb' }));
+  // JSON parsing - reduced to 1mb for security (M-4)
+  // Higher limits for specific routes should be handled in those routes
+  middlewares.push(express.json({ limit: '1mb' }));
 
   // CORS - restrict to localhost origins only
   middlewares.push(cors({
@@ -38,9 +41,36 @@ export function createMiddleware(
       }
     },
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-API-Key'],
     credentials: false
   }));
+
+  // API Key Authentication (C-2)
+  if (apiKey) {
+    middlewares.push((req: Request, res: Response, next: NextFunction) => {
+      // Skip auth for health checks and static UI assets
+      const staticExtensions = ['.html', '.js', '.css', '.svg', '.png', '.jpg', '.jpeg', '.webp', '.woff', '.woff2', '.ttf', '.eot'];
+      const isStaticAsset = staticExtensions.some(ext => req.path.endsWith(ext));
+      if (req.path === '/api/health' || req.path === '/api/readiness' || req.path === '/api/version' || req.path === '/' || isStaticAsset) {
+        return next();
+      }
+
+      const providedKey = req.headers['x-api-key'] || req.query['api_key'];
+      if (providedKey !== apiKey) {
+        logger.warn('SECURITY', 'Unauthorized API access attempt', {
+          path: req.path,
+          method: req.method,
+          clientIp: req.ip || req.connection.remoteAddress
+        });
+        res.status(401).json({
+          error: 'Unauthorized',
+          message: 'Valid X-API-Key header or api_key query parameter required'
+        });
+        return;
+      }
+      next();
+    });
+  }
 
   // HTTP request/response logging
   middlewares.push((req: Request, res: Response, next: NextFunction) => {

@@ -58,8 +58,8 @@ export class DataRoutes extends BaseRouteHandler {
     app.delete('/api/pending-queue/failed', this.handleClearFailedQueue.bind(this));
     app.delete('/api/pending-queue/all', this.handleClearAllQueue.bind(this));
 
-    // Import endpoint
-    app.post('/api/import', this.handleImport.bind(this));
+    // Import endpoint - allow 50MB for data imports (M-4 exception)
+    app.post('/api/import', express.json({ limit: '50mb' }), this.handleImport.bind(this));
   }
 
   /**

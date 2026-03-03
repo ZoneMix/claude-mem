@@ -6,7 +6,7 @@
  */
 
 import type { EventHandler, NormalizedHookInput, HookResult } from '../types.js';
-import { ensureWorkerRunning, getWorkerPort } from '../../shared/worker-utils.js';
+import { ensureWorkerRunning, getWorkerPort, fetchWithAuth } from '../../shared/worker-utils.js';
 import { getProjectContext } from '../../utils/project-name.js';
 import { HOOK_EXIT_CODES } from '../../shared/hook-constants.js';
 import { logger } from '../../utils/logger.js';
@@ -46,8 +46,8 @@ export const contextHandler: EventHandler = {
       // Fetch markdown (for Claude context) and optionally colored (for user display)
       const colorUrl = `${url}&colors=true`;
       const [response, colorResponse] = await Promise.all([
-        fetch(url),
-        showTerminalOutput ? fetch(colorUrl).catch(() => null) : Promise.resolve(null)
+        fetchWithAuth(url),
+        showTerminalOutput ? fetchWithAuth(colorUrl).catch(() => null) : Promise.resolve(null)
       ]);
 
       if (!response.ok) {

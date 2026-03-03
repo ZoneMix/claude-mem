@@ -10,12 +10,14 @@
  */
 
 import path from 'path';
+import crypto from 'crypto';
 import { existsSync, writeFileSync, unlinkSync, statSync } from 'fs';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { getWorkerPort, getWorkerHost } from '../shared/worker-utils.js';
 import { HOOK_TIMEOUTS } from '../shared/hook-constants.js';
 import { SettingsDefaultsManager } from '../shared/SettingsDefaultsManager.js';
+import { USER_SETTINGS_PATH } from '../shared/paths.js';
 import { getAuthMethodDescription } from '../shared/EnvManager.js';
 import { logger } from '../utils/logger.js';
 import { ChromaMcpManager } from './sync/ChromaMcpManager.js';
@@ -214,6 +216,21 @@ export class WorkerService {
     this.settingsManager = new SettingsManager(this.dbManager);
     this.sessionEventBroadcaster = new SessionEventBroadcaster(this.sseBroadcaster, this);
 
+    // C-2: Load or generate internal API key for Worker authentication
+    const settings = SettingsDefaultsManager.loadFromFile(USER_SETTINGS_PATH);
+    let apiKey = settings.CLAUDE_MEM_API_KEY;
+
+    if (!apiKey) {
+      apiKey = crypto.randomBytes(32).toString('hex');
+      settings.CLAUDE_MEM_API_KEY = apiKey;
+      try {
+        writeFileSync(USER_SETTINGS_PATH, JSON.stringify(settings, null, 2), { encoding: 'utf-8', mode: 0o600 });
+        logger.info('SYSTEM', 'Generated internal API key for Worker authentication');
+      } catch (error) {
+        logger.error('SYSTEM', 'Failed to save generated API key to settings.json', {}, error as Error);
+      }
+    }
+
     // Set callback for when sessions are deleted
     this.sessionManager.setOnSessionDeleted(() => {
       this.broadcastProcessingStatus();
@@ -231,6 +248,7 @@ export class WorkerService {
     this.server = new Server({
       getInitializationComplete: () => this.initializationCompleteFlag,
       getMcpReady: () => this.mcpReady,
+      apiKey,
       onShutdown: () => this.shutdown(),
       onRestart: () => this.shutdown(),
       workerPath: __filename,

@@ -166,7 +166,7 @@ export function saveClaudeMemEnv(env: ClaudeMemEnv): void {
       }
     }
 
-    writeFileSync(ENV_FILE_PATH, serializeEnvFile(updated), 'utf-8');
+    writeFileSync(ENV_FILE_PATH, serializeEnvFile(updated), { encoding: 'utf-8', mode: 0o600 });
   } catch (error) {
     logger.error('ENV', 'Failed to save .env file', { path: ENV_FILE_PATH }, error as Error);
     throw error;

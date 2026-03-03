@@ -46,7 +46,22 @@ export class SettingsRoutes extends BaseRouteHandler {
   private handleGetSettings = this.wrapHandler((req: Request, res: Response): void => {
     const settingsPath = path.join(homedir(), '.claude-mem', 'settings.json');
     this.ensureSettingsFile(settingsPath);
-    const settings = SettingsDefaultsManager.loadFromFile(settingsPath);
+    const settings = SettingsDefaultsManager.loadFromFile(settingsPath) as any;
+
+    // C-4: Mask sensitive API keys
+    const sensitiveKeys = [
+      'CLAUDE_MEM_GEMINI_API_KEY',
+      'CLAUDE_MEM_OPENROUTER_API_KEY',
+      'CLAUDE_MEM_CHROMA_API_KEY',
+      'CLAUDE_MEM_API_KEY'
+    ];
+
+    for (const key of sensitiveKeys) {
+      if (settings[key]) {
+        settings[key] = '********' + settings[key].slice(-4);
+      }
+    }
+
     res.json(settings);
   });
 
@@ -124,14 +139,27 @@ export class SettingsRoutes extends BaseRouteHandler {
       'CLAUDE_MEM_FOLDER_CLAUDEMD_ENABLED',
     ];
 
+    const sensitiveKeys = [
+      'CLAUDE_MEM_GEMINI_API_KEY',
+      'CLAUDE_MEM_OPENROUTER_API_KEY',
+      'CLAUDE_MEM_CHROMA_API_KEY',
+      'CLAUDE_MEM_API_KEY'
+    ];
+
     for (const key of settingKeys) {
       if (req.body[key] !== undefined) {
+        // C-4: Skip if it looks like a masked key from handleGetSettings
+        if (sensitiveKeys.includes(key) &&
+            typeof req.body[key] === 'string' &&
+            req.body[key].startsWith('********')) {
+          continue;
+        }
         settings[key] = req.body[key];
       }
     }
 
     // Write back
-    writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
+    writeFileSync(settingsPath, JSON.stringify(settings, null, 2), { encoding: 'utf-8', mode: 0o600 });
 
     // Clear port cache to force re-reading from updated settings
     clearPortCache();
@@ -408,8 +436,8 @@ export class SettingsRoutes extends BaseRouteHandler {
         mkdirSync(dir, { recursive: true });
       }
 
-      writeFileSync(settingsPath, JSON.stringify(defaults, null, 2), 'utf-8');
-      logger.info('SETTINGS', 'Created settings file with defaults', { settingsPath });
+      writeFileSync(settingsPath, JSON.stringify(defaults, null, 2), { encoding: 'utf-8', mode: 0o600 });
+      logger.info('SETTINGS', 'Created settings file with defaults (restricted permissions)', { settingsPath });
     }
   }
 }

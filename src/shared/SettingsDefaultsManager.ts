@@ -36,6 +36,7 @@ export interface SettingsDefaults {
   CLAUDE_MEM_PYTHON_VERSION: string;
   CLAUDE_CODE_PATH: string;
   CLAUDE_MEM_MODE: string;
+  CLAUDE_MEM_API_KEY: string;  // Internal API key for Worker authentication
   // Token Economics
   CLAUDE_MEM_CONTEXT_SHOW_READ_TOKENS: string;
   CLAUDE_MEM_CONTEXT_SHOW_WORK_TOKENS: string;
@@ -98,6 +99,7 @@ export class SettingsDefaultsManager {
     CLAUDE_MEM_PYTHON_VERSION: '3.13',
     CLAUDE_CODE_PATH: '', // Empty means auto-detect via 'which claude'
     CLAUDE_MEM_MODE: 'code', // Default mode profile
+    CLAUDE_MEM_API_KEY: '',  // Empty by default, generated on first run
     // Token Economics
     CLAUDE_MEM_CONTEXT_SHOW_READ_TOKENS: 'false',
     CLAUDE_MEM_CONTEXT_SHOW_WORK_TOKENS: 'false',
@@ -196,9 +198,9 @@ export class SettingsDefaultsManager {
           if (!existsSync(dir)) {
             mkdirSync(dir, { recursive: true });
           }
-          writeFileSync(settingsPath, JSON.stringify(defaults, null, 2), 'utf-8');
+          writeFileSync(settingsPath, JSON.stringify(defaults, null, 2), { encoding: 'utf-8', mode: 0o600 });
           // Use console instead of logger to avoid circular dependency
-          console.log('[SETTINGS] Created settings file with defaults:', settingsPath);
+          console.log('[SETTINGS] Created settings file with defaults (restricted permissions):', settingsPath);
         } catch (error) {
           console.warn('[SETTINGS] Failed to create settings file, using in-memory defaults:', settingsPath, error);
         }
@@ -217,8 +219,8 @@ export class SettingsDefaultsManager {
 
         // Auto-migrate the file to flat schema
         try {
-          writeFileSync(settingsPath, JSON.stringify(flatSettings, null, 2), 'utf-8');
-          console.log('[SETTINGS] Migrated settings file from nested to flat schema:', settingsPath);
+          writeFileSync(settingsPath, JSON.stringify(flatSettings, null, 2), { encoding: 'utf-8', mode: 0o600 });
+          console.log('[SETTINGS] Migrated settings file from nested to flat schema (restricted permissions):', settingsPath);
         } catch (error) {
           console.warn('[SETTINGS] Failed to auto-migrate settings file:', settingsPath, error);
           // Continue with in-memory migration even if write fails

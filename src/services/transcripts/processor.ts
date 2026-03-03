@@ -2,7 +2,7 @@ import { sessionInitHandler } from '../../cli/handlers/session-init.js';
 import { observationHandler } from '../../cli/handlers/observation.js';
 import { fileEditHandler } from '../../cli/handlers/file-edit.js';
 import { sessionCompleteHandler } from '../../cli/handlers/session-complete.js';
-import { ensureWorkerRunning, getWorkerPort } from '../../shared/worker-utils.js';
+import { ensureWorkerRunning, getWorkerPort, fetchWithAuth } from '../../shared/worker-utils.js';
 import { logger } from '../../utils/logger.js';
 import { getProjectContext, getProjectName } from '../../utils/project-name.js';
 import { writeAgentsMd } from '../../utils/agents-md-utils.js';
@@ -321,7 +321,7 @@ export class TranscriptEventProcessor {
     const lastAssistantMessage = session.lastAssistantMessage ?? '';
 
     try {
-      await fetch(`http://127.0.0.1:${port}/api/sessions/summarize`, {
+      await fetchWithAuth(`http://127.0.0.1:${port}/api/sessions/summarize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -351,7 +351,7 @@ export class TranscriptEventProcessor {
     const port = getWorkerPort();
 
     try {
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `http://127.0.0.1:${port}/api/context/inject?projects=${encodeURIComponent(projectsParam)}`
       );
       if (!response.ok) return;

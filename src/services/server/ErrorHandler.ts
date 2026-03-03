@@ -68,11 +68,15 @@ export const errorHandler: ErrorRequestHandler = (
   }, err);
 
   // Build response
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isInternalError = statusCode === 500;
+
   const response = createErrorResponse(
-    err.name || 'Error',
-    err.message,
+    isInternalError && isProduction ? 'InternalServerError' : (err.name || 'Error'),
+    isInternalError && isProduction ? 'An unexpected internal error occurred' : err.message,
     err instanceof AppError ? err.code : undefined,
-    err instanceof AppError ? err.details : undefined
+    // C-5: Never leak stack traces or internal details in production
+    !isProduction ? (err instanceof AppError ? err.details : (err.stack || undefined)) : undefined
   );
 
   // Send response (don't call next, as we've handled the error)

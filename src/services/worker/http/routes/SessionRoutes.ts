@@ -310,7 +310,7 @@ export class SessionRoutes extends BaseRouteHandler {
   setupRoutes(app: express.Application): void {
     // Legacy session endpoints (use sessionDbId)
     app.post('/sessions/:sessionDbId/init', this.handleSessionInit.bind(this));
-    app.post('/sessions/:sessionDbId/observations', this.handleObservations.bind(this));
+    app.post('/sessions/:sessionDbId/observations', express.json({ limit: '10mb' }), this.handleObservations.bind(this));
     app.post('/sessions/:sessionDbId/summarize', this.handleSummarize.bind(this));
     app.get('/sessions/:sessionDbId/status', this.handleSessionStatus.bind(this));
     app.delete('/sessions/:sessionDbId', this.handleSessionDelete.bind(this));
@@ -318,7 +318,7 @@ export class SessionRoutes extends BaseRouteHandler {
 
     // New session endpoints (use contentSessionId)
     app.post('/api/sessions/init', this.handleSessionInitByClaudeId.bind(this));
-    app.post('/api/sessions/observations', this.handleObservationsByClaudeId.bind(this));
+    app.post('/api/sessions/observations', express.json({ limit: '10mb' }), this.handleObservationsByClaudeId.bind(this));
     app.post('/api/sessions/summarize', this.handleSummarizeByClaudeId.bind(this));
     app.post('/api/sessions/complete', this.handleCompleteByClaudeId.bind(this));
   }
