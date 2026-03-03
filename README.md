@@ -2,11 +2,10 @@
 
 <p align="center">
   <a href="#quick-start">Quick Start</a> •
-  <a href="#how-it-works">How It Works</a> •
+  <a href="#platform-integrations">Platform Integrations</a> •
+  <a href="#security-notice">Security Notice</a> •
   <a href="#mcp-search-tools">Search Tools</a> •
   <a href="#documentation">Documentation</a> •
-  <a href="#configuration">Configuration</a> •
-  <a href="#troubleshooting">Troubleshooting</a> •
   <a href="#license">License</a>
 </p>
 
@@ -20,7 +19,7 @@
 
 Start a new Claude Code session in the terminal and enter the following commands:
 
-```
+```bash
 /plugin marketplace add thedotmack/claude-mem
 
 /plugin install claude-mem
@@ -28,79 +27,46 @@ Start a new Claude Code session in the terminal and enter the following commands
 
 Restart Claude Code. Context from previous sessions will automatically appear in new sessions.
 
-> **Note:** Claude-Mem is also published on npm, but `npm install -g claude-mem` installs the **SDK/library only** — it does not register the plugin hooks or set up the worker service. To use Claude-Mem as a plugin, always install via the `/plugin` commands above.
+---
 
-### 🦞 OpenClaw Gateway
+## Platform Integrations
 
-Install claude-mem as a persistent memory plugin on [OpenClaw](https://openclaw.ai) gateways with a single command:
+### 🤖 Gemini Support
+Claude-Mem supports Google Gemini as a reasoning provider for memory generation. To use Gemini:
+1. Open `~/.claude-mem/settings.json`.
+2. Set `"CLAUDE_MEM_PROVIDER": "gemini"`.
+3. Provide your API key in `"CLAUDE_MEM_GEMINI_API_KEY": "your_api_key"`.
+4. (Optional) Select a model like `"CLAUDE_MEM_GEMINI_MODEL": "gemini-2.0-flash"`.
 
-```bash
-curl -fsSL https://install.cmem.ai/openclaw.sh | bash
-```
-
-The installer handles dependencies, plugin setup, AI provider configuration, worker startup, and optional real-time observation feeds to Telegram, Discord, Slack, and more. See the [OpenClaw Integration Guide](https://docs.claude-mem.ai/openclaw-integration) for details.
-
-**Key Features:**
-
-- 🧠 **Persistent Memory** - Context survives across sessions
-- 📊 **Progressive Disclosure** - Layered memory retrieval with token cost visibility
-- 🔍 **Skill-Based Search** - Query your project history with mem-search skill
-- 🖥️ **Web Viewer UI** - Real-time memory stream at http://localhost:37777
-- 💻 **Claude Desktop Skill** - Search memory from Claude Desktop conversations
-- 🔒 **Privacy Control** - Use `<private>` tags to exclude sensitive content from storage
-- ⚙️ **Context Configuration** - Fine-grained control over what context gets injected
-- 🤖 **Automatic Operation** - No manual intervention required
-- 🔗 **Citations** - Reference past observations with IDs (access via http://localhost:37777/api/observation/{id} or view all in the web viewer at http://localhost:37777)
-- 🧪 **Beta Channel** - Try experimental features like Endless Mode via version switching
+### 🖱️ Cursor Integration
+Maintain your project memory within Cursor. Claude-Mem can be integrated into Cursor to provide cross-session context during IDE-based agent tasks.
+- See the **[Cursor Hooks Guide](./cursor-hooks/README.md)** for standalone setup and integration steps.
 
 ---
 
-## Documentation
+## 🔒 Security Notice
 
-📚 **[View Full Documentation](https://docs.claude-mem.ai/)** - Browse on official website
+The Claude-Mem Worker API (port 37777) has been hardened to prevent unauthorized access.
 
-### Getting Started
-
-- **[Installation Guide](https://docs.claude-mem.ai/installation)** - Quick start & advanced installation
-- **[Usage Guide](https://docs.claude-mem.ai/usage/getting-started)** - How Claude-Mem works automatically
-- **[Search Tools](https://docs.claude-mem.ai/usage/search-tools)** - Query your project history with natural language
-- **[Beta Features](https://docs.claude-mem.ai/beta-features)** - Try experimental features like Endless Mode
-
-### Best Practices
-
-- **[Context Engineering](https://docs.claude-mem.ai/context-engineering)** - AI agent context optimization principles
-- **[Progressive Disclosure](https://docs.claude-mem.ai/progressive-disclosure)** - Philosophy behind Claude-Mem's context priming strategy
-
-### Architecture
-
-- **[Overview](https://docs.claude-mem.ai/architecture/overview)** - System components & data flow
-- **[Architecture Evolution](https://docs.claude-mem.ai/architecture-evolution)** - The journey from v3 to v5
-- **[Hooks Architecture](https://docs.claude-mem.ai/hooks-architecture)** - How Claude-Mem uses lifecycle hooks
-- **[Hooks Reference](https://docs.claude-mem.ai/architecture/hooks)** - 7 hook scripts explained
-- **[Worker Service](https://docs.claude-mem.ai/architecture/worker-service)** - HTTP API & Bun management
-- **[Database](https://docs.claude-mem.ai/architecture/database)** - SQLite schema & FTS5 search
-- **[Search Architecture](https://docs.claude-mem.ai/architecture/search-architecture)** - Hybrid search with Chroma vector database
-
-### Configuration & Development
-
-- **[Configuration](https://docs.claude-mem.ai/configuration)** - Environment variables & settings
-- **[Development](https://docs.claude-mem.ai/development)** - Building, testing, contributing
-- **[Troubleshooting](https://docs.claude-mem.ai/troubleshooting)** - Common issues & solutions
+- **Authentication:** All API requests now require a valid `X-API-Key` header.
+- **Local Access:** The API is restricted to `localhost` and `127.0.0.1` by default.
+- **Automatic Management:** If you are using Claude-Mem via the official Claude Code plugin or Cursor hooks, this key is managed for you automatically.
+- **Manual API Usage:** If you are calling the API manually (e.g., via `curl`), you must include the header:
+  ```bash
+  curl -H "X-API-Key: YOUR_API_KEY" http://127.0.0.1:37777/api/health
+  ```
+  *You can find your auto-generated API key in `~/.claude-mem/settings.json` under `CLAUDE_MEM_API_KEY`.*
 
 ---
 
-## How It Works
+## Key Features
 
-**Core Components:**
-
-1. **5 Lifecycle Hooks** - SessionStart, UserPromptSubmit, PostToolUse, Stop, SessionEnd (6 hook scripts)
-2. **Smart Install** - Cached dependency checker (pre-hook script, not a lifecycle hook)
-3. **Worker Service** - HTTP API on port 37777 with web viewer UI and 10 search endpoints, managed by Bun
-4. **SQLite Database** - Stores sessions, observations, summaries
-5. **mem-search Skill** - Natural language queries with progressive disclosure
-6. **Chroma Vector Database** - Hybrid semantic + keyword search for intelligent context retrieval
-
-See [Architecture Overview](https://docs.claude-mem.ai/architecture/overview) for details.
+- 🧠 **Persistent Memory** - Context survives across sessions.
+- 🔍 **Skill-Based Search** - Query your project history with the `mem-search` skill.
+- 🖥️ **Web Viewer UI** - Real-time memory stream at `http://localhost:37777` (requires X-API-Key for data access).
+- 🔒 **Privacy Control** - Use `<private>` tags to exclude sensitive content from storage.
+- ⚙️ **Context Configuration** - Fine-grained control over what context gets injected.
+- 🤖 **Automatic Operation** - No manual intervention required.
 
 ---
 
@@ -108,112 +74,28 @@ See [Architecture Overview](https://docs.claude-mem.ai/architecture/overview) fo
 
 Claude-Mem provides intelligent memory search through **4 MCP tools** following a token-efficient **3-layer workflow pattern**:
 
-**The 3-Layer Workflow:**
-
-1. **`search`** - Get compact index with IDs (~50-100 tokens/result)
-2. **`timeline`** - Get chronological context around interesting results
-3. **`get_observations`** - Fetch full details ONLY for filtered IDs (~500-1,000 tokens/result)
-
-**How It Works:**
-- Claude uses MCP tools to search your memory
-- Start with `search` to get an index of results
-- Use `timeline` to see what was happening around specific observations
-- Use `get_observations` to fetch full details for relevant IDs
-- **~10x token savings** by filtering before fetching details
-
-**Available MCP Tools:**
-
-1. **`search`** - Search memory index with full-text queries, filters by type/date/project
-2. **`timeline`** - Get chronological context around a specific observation or query
-3. **`get_observations`** - Fetch full observation details by IDs (always batch multiple IDs)
+1. **`search`** - Get a compact index with IDs.
+2. **`timeline`** - Get chronological context around interesting results.
+3. **`get_observations`** - Fetch full details ONLY for filtered IDs.
 
 **Example Usage:**
-
 ```typescript
 // Step 1: Search for index
 search(query="authentication bug", type="bugfix", limit=10)
 
-// Step 2: Review index, identify relevant IDs (e.g., #123, #456)
-
-// Step 3: Fetch full details
-get_observations(ids=[123, 456])
+// Step 2: Fetch full details for relevant IDs (e.g., #123)
+get_observations(ids=[123])
 ```
 
-See [Search Tools Guide](https://docs.claude-mem.ai/usage/search-tools) for detailed examples.
-
 ---
 
-## Beta Features
+## Documentation
 
-Claude-Mem offers a **beta channel** with experimental features like **Endless Mode** (biomimetic memory architecture for extended sessions). Switch between stable and beta versions from the web viewer UI at http://localhost:37777 → Settings.
+📚 **[View Full Documentation](https://docs.claude-mem.ai/)**
 
-See **[Beta Features Documentation](https://docs.claude-mem.ai/beta-features)** for details on Endless Mode and how to try it.
-
----
-
-## System Requirements
-
-- **Node.js**: 18.0.0 or higher
-- **Claude Code**: Latest version with plugin support
-- **Bun**: JavaScript runtime and process manager (auto-installed if missing)
-- **uv**: Python package manager for vector search (auto-installed if missing)
-- **SQLite 3**: For persistent storage (bundled)
-
----
-### Windows Setup Notes
-
-If you see an error like:
-
-```powershell
-npm : The term 'npm' is not recognized as the name of a cmdlet
-```
-
-Make sure Node.js and npm are installed and added to your PATH. Download the latest Node.js installer from https://nodejs.org and restart your terminal after installation.
-
----
-
-## Configuration
-
-Settings are managed in `~/.claude-mem/settings.json` (auto-created with defaults on first run). Configure AI model, worker port, data directory, log level, and context injection settings.
-
-See the **[Configuration Guide](https://docs.claude-mem.ai/configuration)** for all available settings and examples.
-
----
-
-## Development
-
-See the **[Development Guide](https://docs.claude-mem.ai/development)** for build instructions, testing, and contribution workflow.
-
----
-
-## Troubleshooting
-
-If experiencing issues, describe the problem to Claude and the troubleshoot skill will automatically diagnose and provide fixes.
-
-See the **[Troubleshooting Guide](https://docs.claude-mem.ai/troubleshooting)** for common issues and solutions.
-
----
-
-## Bug Reports
-
-Create comprehensive bug reports with the automated generator:
-
-```bash
-cd ~/.claude/plugins/marketplaces/thedotmack
-npm run bug-report
-```
-
-## Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes with tests
-4. Update documentation
-5. Submit a Pull Request
-
-See [Development Guide](https://docs.claude-mem.ai/development) for contribution workflow.
+- **[Installation Guide](https://docs.claude-mem.ai/installation)**
+- **[Configuration](https://docs.claude-mem.ai/configuration)**
+- **[Troubleshooting](https://docs.claude-mem.ai/troubleshooting)**
 
 ---
 
@@ -223,28 +105,12 @@ This project is licensed under the **GNU Affero General Public License v3.0** (A
 
 Copyright (C) 2025 Alex Newman (@thedotmack). All rights reserved.
 
-See the [LICENSE](LICENSE) file for full details.
-
-**What This Means:**
-
-- You can use, modify, and distribute this software freely
-- If you modify and deploy on a network server, you must make your source code available
-- Derivative works must also be licensed under AGPL-3.0
-- There is NO WARRANTY for this software
-
-**Note on Ragtime**: The `ragtime/` directory is licensed separately under the **PolyForm Noncommercial License 1.0.0**. See [ragtime/LICENSE](ragtime/LICENSE) for details.
-
 ---
 
 ## Support
 
-- **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/thedotmack/claude-mem/issues)
-- **Repository**: [github.com/thedotmack/claude-mem](https://github.com/thedotmack/claude-mem)
 - **Official X Account**: [@Claude_Memory](https://x.com/Claude_Memory)
 - **Official Discord**: [Join Discord](https://discord.com/invite/J4wttp9vDu)
-- **Author**: Alex Newman ([@thedotmack](https://github.com/thedotmack))
-
----
+- **Repository**: [github.com/thedotmack/claude-mem](https://github.com/thedotmack/claude-mem)
 
 **Built with Claude Agent SDK** | **Powered by Claude Code** | **Made with TypeScript**
